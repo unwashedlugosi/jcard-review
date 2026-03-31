@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>XLII J-Card Review</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111;
+    color: #e8e0d0;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  /* Sticky header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #111;
+    border-bottom: 1px solid #333;
+    padding: 12px 16px;
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #d4a843;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-bottom: 10px;
+  }
+  .progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: #2a2a2a;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #d4a843;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  /* Status summary */
+  .status-summary {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .status-summary span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .dot-approved { display: inline-block; width: 8px; height: 8px; background: #4a90d9; border-radius: 50%; }
+  .dot-flagged { display: inline-block; width: 8px; height: 8px; background: #d4a843; transform: rotate(45deg); }
+  .dot-skipped { display: inline-block; width: 8px; height: 8px; background: #666; border: 1px solid #888; border-radius: 50%; }
+
+  /* Filter buttons */
+  .filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid #444;
+    background: transparent;
+    color: #aaa;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .filter-btn.active {
+    background: #d4a843;
+    color: #111;
+    border-color: #d4a843;
+    font-weight: 600;
+  }
+  .filter-btn .count {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-left: 3px;
+  }
+
+  /* Collection headers */
+  .collection-header {
+    padding: 16px 16px 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #d4a843;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-top: 2px solid #d4a843;
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    scroll-margin-top: 140px;
+  }
+  .collection-header:first-of-type { border-top: none; }
+  .collection-count {
+    font-size: 12px;
+    color: #666;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* Card */
+  .card {
+    margin: 8px 12px;
+    background: #1a1a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+    transition: border-color 0.2s;
+  }
+  .card.status-approved { border-color: #4a90d9; }
+  .card.status-flagged { border-color: #d4a843; }
+  .card-hidden { display: none; }
+
+  /* Card image */
+  .card-img-wrap {
+    width: 100%;
+    background: #0a0a0a;
+    position: relative;
+    cursor: pointer;
+  }
+  .card-img-wrap img {
+    width: 100%;
+    display: block;
+  }
+  .img-expand-hint {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.7);
+    color: #aaa;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  /* Card info */
+  .card-info {
+    padding: 12px 14px;
+  }
+  .card-date {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+  .card-venue {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 10px;
+  }
+
+  /* Action buttons */
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .action-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border-radius: 8px;
+    border: 1.5px solid #333;
+    background: transparent;
+    color: #888;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .action-btn .icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  /* Approved state */
+  .action-btn.approve-btn.selected {
+    background: #1a2d4a;
+    border-color: #4a90d9;
+    color: #4a90d9;
+  }
+  /* Flagged state */
+  .action-btn.flag-btn.selected {
+    background: #3a2a10;
+    border-color: #d4a843;
+    color: #d4a843;
+  }
+  /* Skip state */
+  .action-btn.skip-btn.selected {
+    background: #2a2a2a;
+    border-color: #666;
+    color: #999;
+  }
+
+  /* Comment field */
+  .card-comment {
+    position: relative;
+  }
+  .card-comment textarea {
+    width: 100%;
+    background: #0f0f0f;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #ddd;
+    font-size: 14px;
+    padding: 10px 12px;
+    resize: none;
+    min-height: 40px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .card-comment textarea:focus {
+    border-color: #d4a843;
+  }
+  .card-comment textarea::placeholder {
+    color: #555;
+  }
+  .save-indicator {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: #d4a843;
+    padding: 4px 10px;
+    border-radius: 4px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+  }
+  .save-indicator.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Status badge on card */
+  .card-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .badge-approved {
+    background: #1a2d4a;
+    color: #4a90d9;
+  }
+  .badge-flagged {
+    background: #3a2a10;
+    color: #d4a843;
+  }
+  .badge-skipped {
+    background: #2a2a2a;
+    color: #888;
+  }
+
+  /* Export / action bar */
+  .bottom-bar {
+    padding: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .bottom-bar button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-export {
+    background: #d4a843;
+    color: #111;
+  }
+  .btn-reset {
+    background: #2a2a2a;
+    color: #888;
+    border: 1px solid #444;
+  }
+
+  /* Fullscreen image overlay */
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+  .overlay.active {
+    display: flex;
+  }
+  .overlay img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .overlay-close {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: 12px;
+    color: #fff;
+    font-size: 28px;
+    z-index: 1001;
+    padding: 8px;
+    cursor: pointer;
+  }
+
+  /* Jump-to-top button */
+  .jump-top {
+    position: fixed;
+    bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
+    background: #d4a843;
+    color: #111;
+    border: none;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .jump-top.visible {
+    display: flex;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: max(80px, calc(env(safe-area-inset-bottom, 24px) + 60px));
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.visible { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>XLII J-Card Review</h1>
+  <div class="status-summary" id="statusSummary">
+    <span>170 cards — all approved by default</span>
+    <span><span class="dot-flagged"></span> <span id="flaggedCount">0</span> flagged</span>
+  </div>
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-filter="all">All <span class="count">170</span></button>
+    <button class="filter-btn" data-filter="flagged">Flagged <span class="count" id="flaggedFilterCount">0</span></button>
+  </div>
+  <div class="filters" id="jumpNav" style="margin-top:6px;">
+    <button class="filter-btn jump-btn" onclick="document.getElementById('coll-young_bettys').scrollIntoView({behavior:'smooth'})">Young Bettys (58)</button>
+    <button class="filter-btn jump-btn" onclick="document.getElementById('coll-cornell_and_company').scrollIntoView({behavior:'smooth'})">Cornell (42)</button>
+    <button class="filter-btn jump-btn" onclick="document.getElementById('coll-wall_of_sound').scrollIntoView({behavior:'smooth'})">Wall of Sound (37)</button>
+    <button class="filter-btn jump-btn" onclick="document.getElementById('coll-new_animal').scrollIntoView({behavior:'smooth'})">New Animal (33)</button>
+  </div>
+</div>
+
+<div id="cardList"></div>
+
+<div class="bottom-bar">
+  <button class="btn-export" onclick="exportReview()">Export Review JSON</button>
+  <button class="btn-reset" onclick="resetAll()">Reset All</button>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeOverlay()">
+  <div class="overlay-close">&#x2715;</div>
+  <img id="overlayImg" src="">
+</div>
+
+<button class="jump-top" id="jumpTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#x2191;</button>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CARDS = [{"id": "gd69-02-27.sbd.16track.kaplan.6315.sbeok.shnf", "date": "1969-02-27", "filename": "gd69-02-27.sbd.16track.kaplan.6315.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore West", "city": "San Francisco", "state": "CA"}, {"id": "gd69-02-28.sbd.16track.kaplan.3397.sbeok.shnf", "date": "1969-02-28", "filename": "gd69-02-28.sbd.16track.kaplan.3397.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore West", "city": "San Francisco", "state": "CA"}, {"id": "gd69-03-01.sbd.16track.kaplan.4030.sbeok.shnf", "date": "1969-03-01", "filename": "gd69-03-01.sbd.16track.kaplan.4030.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore West", "city": "San Francisco", "state": "CA"}, {"id": "gd69-03-02.sbd.16track.kaplan.3344.sbeok.shnf", "date": "1969-03-02", "filename": "gd69-03-02.sbd.16track.kaplan.3344.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore West", "city": "San Francisco", "state": "CA"}, {"id": "gd69-05-23.sbd.kaplan.12223.sbeok.shnf", "date": "1969-05-23", "filename": "gd69-05-23.sbd.kaplan.12223.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Seminole Indian Village", "city": "Hollywood", "state": "FL"}, {"id": "gd71-02-18.sbd.orf.107.sbeok.shnf", "date": "1971-02-18", "filename": "gd71-02-18.sbd.orf.107.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Capitol Theater", "city": "Port Chester", "state": "NY"}, {"id": "gd71-02-19.sbd.orf.1029.sbeok.shnf", "date": "1971-02-19", "filename": "gd71-02-19.sbd.orf.1029.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Capitol Theater", "city": "Port Chester", "state": "NY"}, {"id": "gd71-02-20.sbd.orf.111.sbeok.shnf", "date": "1971-02-20", "filename": "gd71-02-20.sbd.orf.111.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Capitol Theater", "city": "Port Chester", "state": "NY"}, {"id": "gd71-02-21.sbd.lunz.1980.sbeok.shnf", "date": "1971-02-21", "filename": "gd71-02-21.sbd.lunz.1980.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Capitol Theater", "city": "Port Chester", "state": "NY"}, {"id": "gd1971-02-23.sbd.miller.110353.flac16", "date": "1971-02-23", "filename": "gd1971-02-23.sbd.miller.110353.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Capitol Theater", "city": "Port Chester", "state": "NY"}, {"id": "gd71-02-24.sbd.orf.114.sbeok.shnf", "date": "1971-02-24", "filename": "gd71-02-24.sbd.orf.114.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Capitol Theater", "city": "Port Chester", "state": "NY"}, {"id": "gd1971-04-04.sbd.miller.110325.flac16", "date": "1971-04-04", "filename": "gd1971-04-04.sbd.miller.110325.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Manhattan Center", "city": "New York", "state": "NY"}, {"id": "gd71-04-05.sbd.stephens.16606.sbeok.shnf", "date": "1971-04-05", "filename": "gd71-04-05.sbd.stephens.16606.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Manhattan Center", "city": "New York", "state": "NY"}, {"id": "gd1971-04-06.sbd.cantor.gmb.96299.flac16", "date": "1971-04-06", "filename": "gd1971-04-06.sbd.cantor.gmb.96299.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Manhattan Center", "city": "New York", "state": "NY"}, {"id": "gd71-04-07.sbd.orf.119.sbeok.shnf", "date": "1971-04-07", "filename": "gd71-04-07.sbd.orf.119.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Boston Music Hall", "city": "Boston", "state": "MA"}, {"id": "gd1971-04-08.141099.sbd.betty.pcm.dalton.miller.clugston.flac1644", "date": "1971-04-08", "filename": "gd1971-04-08.141099.sbd.betty.pcm.dalton.miller.clugston.flac1644.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Boston Music Hall", "city": "Boston", "state": "MA"}, {"id": "gd1971-04-25.sbd.matera.113038.sbeok.flac16", "date": "1971-04-25", "filename": "gd1971-04-25.sbd.matera.113038.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore East", "city": "New York", "state": "NY"}, {"id": "gd1971-04-26.sbd.miller.105814.flac16", "date": "1971-04-26", "filename": "gd1971-04-26.sbd.miller.105814.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore East", "city": "New York", "state": "NY"}, {"id": "gd71-04-27.sbd.murphy.2221.sbeok.shnf", "date": "1971-04-27", "filename": "gd71-04-27.sbd.murphy.2221.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore East", "city": "New York", "state": "NY"}, {"id": "gd1971-04-28.sbd.miller.106099.flac16", "date": "1971-04-28", "filename": "gd1971-04-28.sbd.miller.106099.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore East", "city": "New York", "state": "NY"}, {"id": "gd71-04-29.sbd.frisco.16782.sbeok.shnf", "date": "1971-04-29", "filename": "gd71-04-29.sbd.frisco.16782.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Fillmore East", "city": "New York", "state": "NY"}, {"id": "gd1971-08-06.sbd.miller.96541.sbeok.flac16", "date": "1971-08-06", "filename": "gd1971-08-06.sbd.miller.96541.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Hollywood Palladium", "city": "Hollywood", "state": "CA"}, {"id": "gd71-12-14.sbd.deibert.12763.sbeok.shnf", "date": "1971-12-14", "filename": "gd71-12-14.sbd.deibert.12763.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Hill Auditorium", "city": "Ann Arbor", "state": "MI"}, {"id": "gd1971-12-15.sbd.miller.97718.sbeok.flac16", "date": "1971-12-15", "filename": "gd1971-12-15.sbd.miller.97718.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Hill Auditorium", "city": "Ann Arbor", "state": "MI"}, {"id": "gd1972-03-21.sbd.miller.92395.sbeok.flac16", "date": "1972-03-21", "filename": "gd1972-03-21.sbd.miller.92395.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Academy of Music", "city": "New York", "state": "NY"}, {"id": "gd1972-03-22.132726.sbd.miller.flac16", "date": "1972-03-22", "filename": "gd1972-03-22.132726.sbd.miller.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Academy of Music", "city": "New York", "state": "NY"}, {"id": "gd1972-03-23.sbd.miller.100000.sbeok.flac16", "date": "1972-03-23", "filename": "gd1972-03-23.sbd.miller.100000.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Academy of Music", "city": "New York", "state": "NY"}, {"id": "gd1972-03-25.136684.sbd.sirmick.flac1648", "date": "1972-03-25", "filename": "gd1972-03-25.136684.sbd.sirmick.flac1648.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Academy of Music", "city": "New York", "state": "NY"}, {"id": "gd1972-03-26.133303.sbd.miller.flac16", "date": "1972-03-26", "filename": "gd1972-03-26.133303.sbd.miller.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Academy of Music", "city": "New York", "state": "NY"}, {"id": "gd1972-03-27.132366.sbd.miller.flac16", "date": "1972-03-27", "filename": "gd1972-03-27.132366.sbd.miller.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Academy of Music", "city": "New York", "state": "NY"}, {"id": "gd1972-03-28.132729.sbd.miller.flac16", "date": "1972-03-28", "filename": "gd1972-03-28.132729.sbd.miller.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Academy of Music", "city": "New York", "state": "NY"}, {"id": "gd1972-04-08.sbd.miller.83714.sbeok.flac16", "date": "1972-04-08", "filename": "gd1972-04-08.sbd.miller.83714.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Wembley Empire Pool", "city": "London", "state": "England"}, {"id": "gd1972-04-26.136637.sbd.mr.sirmickflac1648", "date": "1972-04-26", "filename": "gd1972-04-26.136637.sbd.mr.sirmickflac1648.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Jahrhunderthalle", "city": "Frankfurt", "state": "West Germany"}, {"id": "gd72-05-03.sbd.masse.142.sbeok.shnf", "date": "1972-05-03", "filename": "gd72-05-03.sbd.masse.142.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Olympia Theatre", "city": "Paris", "state": "France"}, {"id": "gd1972-05-04.sbd.miller.77294.sbeok.flac16", "date": "1972-05-04", "filename": "gd1972-05-04.sbd.miller.77294.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Olympia Theatre", "city": "Paris", "state": "France"}, {"id": "gd72-05-07.sbd-aud.clugston.9193.sbeok.shnf", "date": "1972-05-07", "filename": "gd72-05-07.sbd-aud.clugston.9193.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Bickershaw Festival", "city": "Wigan", "state": "England"}, {"id": "gd72-05-26.sbd.hollister.12758.sbeok.shnf", "date": "1972-05-26", "filename": "gd72-05-26.sbd.hollister.12758.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Lyceum Theatre", "city": "London", "state": "England"}, {"id": "gd1972-07-18.sbd.miller.32878.flac16", "date": "1972-07-18", "filename": "gd1972-07-18.sbd.miller.32878.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Roosevelt Stadium", "city": "Jersey City", "state": "NJ"}, {"id": "gd72-08-12.sbd.hamilton.3327.sbeok.shnf", "date": "1972-08-12", "filename": "gd72-08-12.sbd.hamilton.3327.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Sacramento Memorial Auditorium", "city": "Sacramento", "state": "CA"}, {"id": "gd1972-08-20.sbd.miller.83733.flac16", "date": "1972-08-20", "filename": "gd1972-08-20.sbd.miller.83733.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "San Jose Civic Auditorium", "city": "San Jose", "state": "CA"}, {"id": "gd72-08-21.sbd.hamilton.150.sbeok.shnf", "date": "1972-08-21", "filename": "gd72-08-21.sbd.hamilton.150.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Berkeley Community Theater", "city": "Berkeley", "state": "CA"}, {"id": "gd1972-08-22.sbd.miller.27780.shnf", "date": "1972-08-22", "filename": "gd1972-08-22.sbd.miller.27780.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Berkeley Community Theater", "city": "Berkeley", "state": "CA"}, {"id": "gd72-08-24.sbd.miller.18093.sbeok.shnf", "date": "1972-08-24", "filename": "gd72-08-24.sbd.miller.18093.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Berkeley Community Theater", "city": "Berkeley", "state": "CA"}, {"id": "gd1972-08-25.sbd.miller.92840.sbeok.flac16", "date": "1972-08-25", "filename": "gd1972-08-25.sbd.miller.92840.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Berkeley Community Theater", "city": "Berkeley", "state": "CA"}, {"id": "gd72-08-27.sbd.orf.3328.sbeok.shnf", "date": "1972-08-27", "filename": "gd72-08-27.sbd.orf.3328.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Old Renaissance Faire Grounds", "city": "Veneta", "state": "OR"}, {"id": "gd72-09-21.sbd.masse.7296.sbeok.shnf", "date": "1972-09-21", "filename": "gd72-09-21.sbd.masse.7296.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "The Spectrum", "city": "Philadelphia", "state": "PA"}, {"id": "gd1972-11-19.122784.sbd.miller-gans.flac24", "date": "1972-11-19", "filename": "gd1972-11-19.122784.sbd.miller-gans.flac24.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Hofheinz Pavilion", "city": "Houston", "state": "TX"}, {"id": "gd73-02-09.sbd.bertha-fink.14939.sbeok.shnf", "date": "1973-02-09", "filename": "gd73-02-09.sbd.bertha-fink.14939.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Maples Pavilion, Stanford", "city": "Palo Alto", "state": "CA"}, {"id": "gd73-02-15.sbd.hall.1580.sbeok.shnf", "date": "1973-02-15", "filename": "gd73-02-15.sbd.hall.1580.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Assembly Hall", "city": "Champaign", "state": "IL"}, {"id": "gd1973-02-21.sbd.miller.111120.flac16", "date": "1973-02-21", "filename": "gd1973-02-21.sbd.miller.111120.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Assembly Hall", "city": "Champaign", "state": "IL"}, {"id": "gd73-02-22.pset2-sbd.carman.12215.sbeok.shnf", "date": "1973-02-22", "filename": "gd73-02-22.pset2-sbd.carman.12215.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Assembly Hall", "city": "Champaign", "state": "IL"}, {"id": "gd73-03-24.sbd.bertha-ashley.25508.sbeok.shnf", "date": "1973-03-24", "filename": "gd73-03-24.sbd.bertha-ashley.25508.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "The Spectrum", "city": "Philadelphia", "state": "PA"}, {"id": "gd73-06-10.sbd.hollister.174.sbeok.shnf", "date": "1973-06-10", "filename": "gd73-06-10.sbd.hollister.174.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Robert F. Kennedy Stadium", "city": "Washington", "state": "DC"}, {"id": "gd1973-06-22.sbd.miller.88526.sbeok.flac16", "date": "1973-06-22", "filename": "gd1973-06-22.sbd.miller.88526.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "P.N.E. Coliseum", "city": "Vancouver", "state": "BC"}, {"id": "gd1973-06-24.sbd.miller.99852.sbeok.flac16", "date": "1973-06-24", "filename": "gd1973-06-24.sbd.miller.99852.sbeok.flac16.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Portland Memorial Coliseum", "city": "Portland", "state": "OR"}, {"id": "gd73-07-28.sbd.weiner.14196.sbeok.shnf", "date": "1973-07-28", "filename": "gd73-07-28.sbd.weiner.14196.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Watkins Glen Raceway", "city": "Watkins Glen", "state": "NY"}, {"id": "gd73-11-11.sbd.schlissel.14105.sbeok.shnf", "date": "1973-11-11", "filename": "gd73-11-11.sbd.schlissel.14105.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd73-11-14.sbd.vernon.5612.sbeok.shnf", "date": "1973-11-14", "filename": "gd73-11-14.sbd.vernon.5612.sbeok.shnf.jpg", "collection": "young_bettys", "collectionName": "Young Bettys", "venue": "San Diego Sports Arena", "city": "San Diego", "state": "CA"}, {"id": "gd74-02-22.sbd.patched.sirmick.21539.sbeok.shnf", "date": "1974-02-22", "filename": "gd74-02-22.sbd.patched.sirmick.21539.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd74-02-23.sbd.bertha-ashley.26362.sbeok.shnf", "date": "1974-02-23", "filename": "gd74-02-23.sbd.bertha-ashley.26362.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd74-02-24.sbd.windsor.199.sbefail.shnf", "date": "1974-02-24", "filename": "gd74-02-24.sbd.windsor.199.sbefail.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd1974-03-23.sbd.clugston-orf.1995.sbeok.shnf", "date": "1974-03-23", "filename": "gd1974-03-23.sbd.clugston-orf.1995.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Cow Palace", "city": "Daly City", "state": "CA"}, {"id": "gd74-05-12.sbd.sacks.2224.sbeok.shnf", "date": "1974-05-12", "filename": "gd74-05-12.sbd.sacks.2224.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "University of Nevada", "city": "Reno", "state": "NV"}, {"id": "gd74-05-14.sbd.murphy.1823.sbeok.shnf", "date": "1974-05-14", "filename": "gd74-05-14.sbd.murphy.1823.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Adams Field House", "city": "Missoula", "state": "MT"}, {"id": "gd1974-05-17.sbd.miller.89972.sbeok.flac16", "date": "1974-05-17", "filename": "gd1974-05-17.sbd.miller.89972.sbeok.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "P.N.E. Coliseum", "city": "Vancouver", "state": "BC"}, {"id": "gd74-05-19.sbd.clugston.6957.sbeok.shnf", "date": "1974-05-19", "filename": "gd74-05-19.sbd.clugston.6957.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Portland Memorial Coliseum", "city": "Portland", "state": "OR"}, {"id": "gd1974-05-21.sbd.kaplan.1347.shnf", "date": "1974-05-21", "filename": "gd1974-05-21.sbd.kaplan.1347.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Edmundson Pavilion", "city": "Seattle", "state": "WA"}, {"id": "gd1974-06-08.sbd.miller.97268.sbeok.flac16", "date": "1974-06-08", "filename": "gd1974-06-08.sbd.miller.97268.sbeok.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Oakland Coliseum Stadium", "city": "Oakland", "state": "CA"}, {"id": "gd74-06-16.sbd.fink.17701.sbeok.shnf", "date": "1974-06-16", "filename": "gd74-06-16.sbd.fink.17701.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Iowa State Fairgrounds", "city": "Des Moines", "state": "IA"}, {"id": "gd74-06-18.sbd.sacks.209.sbefail.shnf", "date": "1974-06-18", "filename": "gd74-06-18.sbd.sacks.209.sbefail.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Freedom Hall", "city": "Louisville", "state": "KY"}, {"id": "gd74-06-20.sbd.clugston.2179.sbeok.shnf", "date": "1974-06-20", "filename": "gd74-06-20.sbd.clugston.2179.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "The Omni", "city": "Atlanta", "state": "GA"}, {"id": "gd74-06-22.sbd.obv.30972.flacf", "date": "1974-06-22", "filename": "gd74-06-22.sbd.obv.30972.flacf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Jai-Alai Fronton", "city": "Miami", "state": "FL"}, {"id": "gd1974-06-23.sbd.matrix-sb21b.chappell.83489.flac16", "date": "1974-06-23", "filename": "gd1974-06-23.sbd.matrix-sb21b.chappell.83489.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Jai-Alai Fronton", "city": "Miami", "state": "FL"}, {"id": "gd1974-06-26.119613.mtx.dusborne.flac16", "date": "1974-06-26", "filename": "gd1974-06-26.119613.mtx.dusborne.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Providence Civic Center", "city": "Providence", "state": "RI"}, {"id": "gd1974-06-28.139780.sbd.miller.fixed.flac1644", "date": "1974-06-28", "filename": "gd1974-06-28.139780.sbd.miller.fixed.flac1644.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Boston Garden", "city": "Boston", "state": "MA"}, {"id": "gd1974-06-30.sbd.miller.96275.sbeok.flac16", "date": "1974-06-30", "filename": "gd1974-06-30.sbd.miller.96275.sbeok.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Springfield Civic Center", "city": "Springfield", "state": "MA"}, {"id": "gd74-07-19.sbd.symons.12381.sbeok.shnf", "date": "1974-07-19", "filename": "gd74-07-19.sbd.symons.12381.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Selland Arena", "city": "Fresno", "state": "CA"}, {"id": "gd74-07-25.sbd.fink.1072.sbeok.shnf", "date": "1974-07-25", "filename": "gd74-07-25.sbd.fink.1072.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "International Amphitheatre", "city": "Chicago", "state": "IL"}, {"id": "gd74-07-27.sbd.kaplan.2420.sbeok.shnf", "date": "1974-07-27", "filename": "gd74-07-27.sbd.kaplan.2420.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Roanoke Civic Center", "city": "Roanoke", "state": "VA"}, {"id": "gd1974-07-29.sbd.miller.107756.flac16", "date": "1974-07-29", "filename": "gd1974-07-29.sbd.miller.107756.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Capital Centre", "city": "Landover", "state": "MD"}, {"id": "gd1974-07-31.sbd.miller.32353.sbeok.flac16", "date": "1974-07-31", "filename": "gd1974-07-31.sbd.miller.32353.sbeok.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Dillon Stadium", "city": "Hartford", "state": "CT"}, {"id": "gd1974-08-04.mtx.seamons.100653.sbeok.flac16", "date": "1974-08-04", "filename": "gd1974-08-04.mtx.seamons.100653.sbeok.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Philadelphia Civic Center", "city": "Philadelphia", "state": "PA"}, {"id": "gd1974-08-05.131660.mtx.dusborne.flac16", "date": "1974-08-05", "filename": "gd1974-08-05.131660.mtx.dusborne.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Philadelphia Civic Center", "city": "Philadelphia", "state": "PA"}, {"id": "gd74-08-06.sbd.deadlists.1463.sbeok.shnf", "date": "1974-08-06", "filename": "gd74-08-06.sbd.deadlists.1463.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Roosevelt Stadium", "city": "Jersey City", "state": "NJ"}, {"id": "gd1974-09-09.135655.sbd.new.patched.miller.flac16", "date": "1974-09-09", "filename": "gd1974-09-09.135655.sbd.new.patched.miller.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Alexandra Palace", "city": "London", "state": "England"}, {"id": "gd1974-09-10.135699.sbd.new.patched.miller.flac16", "date": "1974-09-10", "filename": "gd1974-09-10.135699.sbd.new.patched.miller.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Alexandra Palace", "city": "London", "state": "England"}, {"id": "gd1974-09-11.sbd.unknown.4647.shnf", "date": "1974-09-11", "filename": "gd1974-09-11.sbd.unknown.4647.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Alexandra Palace", "city": "London", "state": "England"}, {"id": "gd74-09-18.sbd.miller.20732.sbeok.shnf", "date": "1974-09-18", "filename": "gd74-09-18.sbd.miller.20732.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Parc des Expositions", "city": "Dijon", "state": "France"}, {"id": "gd1974-09-20.131529.sbd.miller.flac16", "date": "1974-09-20", "filename": "gd1974-09-20.131529.sbd.miller.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Palais des Sports", "city": "Paris", "state": "France"}, {"id": "gd74-09-21.sbd.miller.30654.sbeok.flacf", "date": "1974-09-21", "filename": "gd74-09-21.sbd.miller.30654.sbeok.flacf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Palais des Sports", "city": "Paris", "state": "France"}, {"id": "gd1974-10-16.131539.mtx.dusborne.flac16", "date": "1974-10-16", "filename": "gd1974-10-16.131539.mtx.dusborne.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd74-10-17.sbd.barbella.16189.sbeok.shnf", "date": "1974-10-17", "filename": "gd74-10-17.sbd.barbella.16189.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd74-10-18.sbd.bertha-ashley.22796.sbeok.shnf", "date": "1974-10-18", "filename": "gd74-10-18.sbd.bertha-ashley.22796.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd74-10-19.sbd.miller.21927.sbeok.shnf", "date": "1974-10-19", "filename": "gd74-10-19.sbd.miller.21927.sbeok.shnf.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd1974-10-20.sbd.smith-lee.GEMS.97193.flac16", "date": "1974-10-20", "filename": "gd1974-10-20.sbd.smith-lee.GEMS.97193.flac16.jpg", "collection": "wall_of_sound", "collectionName": "wall_of_sound", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd77-02-26.sbd.alphadog.9752.sbeok.shnf", "date": "1977-02-26", "filename": "gd77-02-26.sbd.alphadog.9752.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Swing Auditorium", "city": "San Bernardino", "state": "CA"}, {"id": "gd77-03-18.sbd.unknown.254.sbeok.shnf", "date": "1977-03-18", "filename": "gd77-03-18.sbd.unknown.254.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd1977-03-19.123190.sbd.miller.flac16", "date": "1977-03-19", "filename": "gd1977-03-19.123190.sbd.miller.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd77-04-22.sbd.cotsman.10148.sbeok.shnf", "date": "1977-04-22", "filename": "gd77-04-22.sbd.cotsman.10148.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "The Spectrum", "city": "Philadelphia", "state": "PA"}, {"id": "gd1977-04-23.mtx.seamons.97596.sbeok.flac16", "date": "1977-04-23", "filename": "gd1977-04-23.mtx.seamons.97596.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Springfield Civic Center", "city": "Springfield", "state": "MA"}, {"id": "gd77-04-25.sbd.symons.15879.sbeok.shnf", "date": "1977-04-25", "filename": "gd77-04-25.sbd.symons.15879.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Capitol Theatre", "city": "Passaic", "state": "NJ"}, {"id": "gd1977-04-27.sbd.braverman.7799.shnf", "date": "1977-04-27", "filename": "gd1977-04-27.sbd.braverman.7799.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Capitol Theatre", "city": "Passaic", "state": "NJ"}, {"id": "gd77-04-29.moore.unknown.7113.sbeok.shnf", "date": "1977-04-29", "filename": "gd77-04-29.moore.unknown.7113.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "The Palladium", "city": "New York", "state": "NY"}, {"id": "gd77-04-30.moore.minches.17952.sbeok.shnf", "date": "1977-04-30", "filename": "gd77-04-30.moore.minches.17952.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "The Palladium", "city": "New York", "state": "NY"}, {"id": "gd1977-05-04.sbd.miller.91970.sbeok.flac16", "date": "1977-05-04", "filename": "gd1977-05-04.sbd.miller.91970.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "The Palladium", "city": "New York", "state": "NY"}, {"id": "gd77-05-05.sbd.stephens.8832.sbeok.shnf", "date": "1977-05-05", "filename": "gd77-05-05.sbd.stephens.8832.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "New Haven Coliseum", "city": "New Haven", "state": "CT"}, {"id": "gd77-05-07.sbd.eaton.wizard.26085.sbeok.shnf", "date": "1977-05-07", "filename": "gd77-05-07.sbd.eaton.wizard.26085.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Boston Garden", "city": "Boston", "state": "MA"}, {"id": "gd77-05-08.sbd.hicks.4982.sbeok.shnf", "date": "1977-05-08", "filename": "gd77-05-08.sbd.hicks.4982.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Barton Hall, Cornell University", "city": "Ithaca", "state": "NY"}, {"id": "gd77-05-09.sbd.connor.8304.sbeok.shnf", "date": "1977-05-09", "filename": "gd77-05-09.sbd.connor.8304.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "War Memorial Auditorium", "city": "Buffalo", "state": "NY"}, {"id": "gd77-05-11.sbd.barbella.8374.sbeok.shnf", "date": "1977-05-11", "filename": "gd77-05-11.sbd.barbella.8374.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Civic Center Arena", "city": "St. Paul", "state": "MN"}, {"id": "gd77-05-13.sbd.miller.9393.sbeok.shnf", "date": "1977-05-13", "filename": "gd77-05-13.sbd.miller.9393.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Auditorium Theatre", "city": "Chicago", "state": "IL"}, {"id": "gd77-05-17.sbd.weiner.18554.sbeok.shnf", "date": "1977-05-17", "filename": "gd77-05-17.sbd.weiner.18554.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Memorial Coliseum", "city": "Tuscaloosa", "state": "AL"}, {"id": "gd1977-05-18.sbd.miller.79012.flac16", "date": "1977-05-18", "filename": "gd1977-05-18.sbd.miller.79012.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Fox Theatre", "city": "Atlanta", "state": "GA"}, {"id": "gd77-05-19.sbd.direwolf.3120.sbeok.shnf", "date": "1977-05-19", "filename": "gd77-05-19.sbd.direwolf.3120.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Fox Theatre", "city": "Atlanta", "state": "GA"}, {"id": "gd1977-05-21.139573.sbd.gastwirt.miller.sirmick.flac1644", "date": "1977-05-21", "filename": "gd1977-05-21.139573.sbd.gastwirt.miller.sirmick.flac1644.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Lakeland Civic Center", "city": "Lakeland", "state": "FL"}, {"id": "gd1977-05-22.140278.sbd.miller.flac2496", "date": "1977-05-22", "filename": "gd1977-05-22.140278.sbd.miller.flac2496.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Sportatorium", "city": "Pembroke Pines", "state": "FL"}, {"id": "gd77-05-25.sbd.shannon.13399.sbefail.shnf", "date": "1977-05-25", "filename": "gd77-05-25.sbd.shannon.13399.sbefail.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "The Mosque", "city": "Richmond", "state": "VA"}, {"id": "gd77-05-26.sbd.sacks.3224.sbeok.shnf", "date": "1977-05-26", "filename": "gd77-05-26.sbd.sacks.3224.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Baltimore Civic Center", "city": "Baltimore", "state": "MD"}, {"id": "gd1977-06-08.mtx.seamons.95361.sbeok.flac16", "date": "1977-06-08", "filename": "gd1977-06-08.mtx.seamons.95361.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd1977-06-09.28614.sbeok.flac16", "date": "1977-06-09", "filename": "gd1977-06-09.28614.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd77-09-03.sbd.unk.276.sbefixed.shnf", "date": "1977-09-03", "filename": "gd77-09-03.sbd.unk.276.sbefixed.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Raceway Park", "city": "Englishtown", "state": "NJ"}, {"id": "gd77-09-28.sbd.connor.10482.sbeok.shnf", "date": "1977-09-28", "filename": "gd77-09-28.sbd.connor.10482.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Paramount Theatre", "city": "Seattle", "state": "WA"}, {"id": "gd1977-10-01.sbd.cantor.gmb.86234.sbeok.flac16", "date": "1977-10-01", "filename": "gd1977-10-01.sbd.cantor.gmb.86234.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Paramount Theatre", "city": "Portland", "state": "OR"}, {"id": "gd77-10-02.sbd.unknown.278.sbeok.shnf", "date": "1977-10-02", "filename": "gd77-10-02.sbd.unknown.278.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Paramount Theatre", "city": "Portland", "state": "OR"}, {"id": "gd1977-10-07.sbd-set2.miller.79020.sbeok.flac16", "date": "1977-10-07", "filename": "gd1977-10-07.sbd-set2.miller.79020.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "University of New Mexico Johnson Gym", "city": "Albuquerque", "state": "NM"}, {"id": "gd1977-10-09.sbd.miller.88961.sbeok.flac16", "date": "1977-10-09", "filename": "gd1977-10-09.sbd.miller.88961.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "McNichols Sports Arena", "city": "Denver", "state": "CO"}, {"id": "gd77-10-11.sbd.cotsman.19290.sbeok.shnf", "date": "1977-10-11", "filename": "gd77-10-11.sbd.cotsman.19290.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Lloyd Noble Center", "city": "Norman", "state": "OK"}, {"id": "gd1977-10-28.sbd.miller.96159.sbeok.flac16", "date": "1977-10-28", "filename": "gd1977-10-28.sbd.miller.96159.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Soldiers and Sailors Memorial Hall", "city": "Kansas City", "state": "KS"}, {"id": "gd1977-10-29.sbd.miller.92085.sbeok.flac16", "date": "1977-10-29", "filename": "gd1977-10-29.sbd.miller.92085.sbeok.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Evans Field House, Northern Illinois U", "city": "DeKalb", "state": "IL"}, {"id": "gd77-10-30.sbd.nawrocki.14946.sbeok.shnf", "date": "1977-10-30", "filename": "gd77-10-30.sbd.nawrocki.14946.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Assembly Hall", "city": "Bloomington", "state": "IN"}, {"id": "gd77-11-01.sbd.jeffm.2485.sbeok.shnf", "date": "1977-11-01", "filename": "gd77-11-01.sbd.jeffm.2485.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Cobo Arena", "city": "Detroit", "state": "MI"}, {"id": "gd77-11-04.sbd.unknown.2595.sbeok.shnf", "date": "1977-11-04", "filename": "gd77-11-04.sbd.unknown.2595.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Cotterell Gym, Colgate University", "city": "Hamilton", "state": "NY"}, {"id": "gd77-11-05.sbd.clugston.6934.sbeok.shnf", "date": "1977-11-05", "filename": "gd77-11-05.sbd.clugston.6934.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Community War Memorial", "city": "Rochester", "state": "NY"}, {"id": "gd77-11-06.sbd.nawrocki.283.sbeok.shnf", "date": "1977-11-06", "filename": "gd77-11-06.sbd.nawrocki.283.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Broome County Veterans Memorial Arena", "city": "Binghamton", "state": "NY"}, {"id": "gd77-12-27.sbd.cotsman.19288.sbeok.shnf", "date": "1977-12-27", "filename": "gd77-12-27.sbd.cotsman.19288.sbeok.shnf.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd1977-12-29.137198.sbd.miller.flac1648", "date": "1977-12-29", "filename": "gd1977-12-29.137198.sbd.miller.flac1648.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd1977-12-30.132379.sbd.miller.flac16", "date": "1977-12-30", "filename": "gd1977-12-30.132379.sbd.miller.flac16.jpg", "collection": "cornell_and_company", "collectionName": "cornell_and_company", "venue": "Winterland Arena", "city": "San Francisco", "state": "CA"}, {"id": "gd79-04-22.sbd.bennett.12001.sbeok.shnf", "date": "1979-04-22", "filename": "gd79-04-22.sbd.bennett.12001.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Spartan Stadium", "city": "San Jose", "state": "CA"}, {"id": "gd1979-05-05.sbd.miller.fishmanj-repitch.78748.flac16", "date": "1979-05-05", "filename": "gd1979-05-05.sbd.miller.fishmanj-repitch.78748.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Baltimore Civic Center", "city": "Baltimore", "state": "MD"}, {"id": "gd79-08-04.sbd.munder.9578.sbeok.shnf", "date": "1979-08-04", "filename": "gd79-08-04.sbd.munder.9578.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium Arena", "city": "Oakland", "state": "CA"}, {"id": "gd1979-09-02.sbd.miller.93011.sbeok.flac16", "date": "1979-09-02", "filename": "gd1979-09-02.sbd.miller.93011.sbeok.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Augusta Civic Center", "city": "Augusta", "state": "ME"}, {"id": "gd79-10-25.sbd.set2.fishman.21271.sbefail.shnf", "date": "1979-10-25", "filename": "gd79-10-25.sbd.set2.fishman.21271.sbefail.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "New Haven Coliseum", "city": "New Haven", "state": "CT"}, {"id": "gd79-10-27.sbd.clugston.13980.sbeok.shnf", "date": "1979-10-27", "filename": "gd79-10-27.sbd.clugston.13980.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Cape Cod Coliseum", "city": "South Yarmouth", "state": "MA"}, {"id": "gd79-10-31.sbd.miller.29410.sbeok.flacf", "date": "1979-10-31", "filename": "gd79-10-31.sbd.miller.29410.sbeok.flacf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Nassau Coliseum", "city": "Uniondale", "state": "NY"}, {"id": "gd1979-11-01.sbd.miller.23445.shnf", "date": "1979-11-01", "filename": "gd1979-11-01.sbd.miller.23445.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Nassau Coliseum", "city": "Uniondale", "state": "NY"}, {"id": "gd79-11-02.sbd.macdonald.7920.sbeok.shnf", "date": "1979-11-02", "filename": "gd79-11-02.sbd.macdonald.7920.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Nassau Coliseum", "city": "Uniondale", "state": "NY"}, {"id": "gd79-11-06.sbd.clugston.2417.sbeok.shnf", "date": "1979-11-06", "filename": "gd79-11-06.sbd.clugston.2417.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "The Spectrum", "city": "Philadelphia", "state": "PA"}, {"id": "gd79-11-09.sbd.stern.318.sbeok.shnf", "date": "1979-11-09", "filename": "gd79-11-09.sbd.stern.318.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Community War Memorial Auditorium", "city": "Buffalo", "state": "NY"}, {"id": "gd79-11-10.sbd.clugston.14108.sbeok.shnf", "date": "1979-11-10", "filename": "gd79-11-10.sbd.clugston.14108.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Crisler Arena", "city": "Ann Arbor", "state": "MI"}, {"id": "gd1979-12-26.sbd.evans.gems.81323.sbeok.flac16", "date": "1979-12-26", "filename": "gd1979-12-26.sbd.evans.gems.81323.sbeok.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium", "city": "Oakland", "state": "CA"}, {"id": "gd79-12-28.sbd.lai.4145.sbefail.shnf", "date": "1979-12-28", "filename": "gd79-12-28.sbd.lai.4145.sbefail.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium Arena", "city": "Oakland", "state": "CA"}, {"id": "gd79-12-30.sbd.ladner.4797.sbeok.shnf", "date": "1979-12-30", "filename": "gd79-12-30.sbd.ladner.4797.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium Arena", "city": "Oakland", "state": "CA"}, {"id": "gd79-12-31.sbd.hinko.17281.sbeok.shnf", "date": "1979-12-31", "filename": "gd79-12-31.sbd.hinko.17281.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium Arena", "city": "Oakland", "state": "CA"}, {"id": "gd1980-01-13.sbd.miller.106517.flac16", "date": "1980-01-13", "filename": "gd1980-01-13.sbd.miller.106517.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland-Alameda County Coliseum", "city": "Oakland", "state": "CA"}, {"id": "gd1980-03-30.sbd.miller.92666.sbeok.flac16", "date": "1980-03-30", "filename": "gd1980-03-30.sbd.miller.92666.sbeok.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Capitol Theatre", "city": "Passaic", "state": "NJ"}, {"id": "gd1980-05-15.126692.mtx.dusborne.flac16", "date": "1980-05-15", "filename": "gd1980-05-15.126692.mtx.dusborne.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Nassau Coliseum", "city": "Uniondale", "state": "NY"}, {"id": "gd80-05-16.sbd.clugston.7472.sbeok.shnf", "date": "1980-05-16", "filename": "gd80-05-16.sbd.clugston.7472.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Nassau Coliseum", "city": "Uniondale", "state": "NY"}, {"id": "gd1980-06-20.sbd.bertha.tetzeli.fix-25468.73846.reflac.flac16", "date": "1980-06-20", "filename": "gd1980-06-20.sbd.bertha.tetzeli.fix-25468.73846.reflac.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "West High Auditorium", "city": "Anchorage", "state": "AK"}, {"id": "gd1980-08-19.sbd.miller.88172.sbeok.flac16", "date": "1980-08-19", "filename": "gd1980-08-19.sbd.miller.88172.sbeok.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Uptown Theater", "city": "Chicago", "state": "IL"}, {"id": "gd80-09-02.sbd.miller.28299.sbeok.flacf", "date": "1980-09-02", "filename": "gd80-09-02.sbd.miller.28299.sbeok.flacf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Community War Memorial", "city": "Rochester", "state": "NY"}, {"id": "gd1980-10-04.151437.sbd.1st-gen.miller.t.flac16", "date": "1980-10-04", "filename": "gd1980-10-04.151437.sbd.1st-gen.miller.t.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Warfield Theatre", "city": "San Francisco", "state": "CA"}, {"id": "gd80-10-14.sbd-aud.gardner.3828.sbeok.shnf", "date": "1980-10-14", "filename": "gd80-10-14.sbd-aud.gardner.3828.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Warfield Theatre", "city": "San Francisco", "state": "CA"}, {"id": "gd80-10-26.sbd.hinko.18862.sbeok.shnf", "date": "1980-10-26", "filename": "gd80-10-26.sbd.hinko.18862.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Radio City Music Hall", "city": "New York", "state": "NY"}, {"id": "gd1980-10-30.139599.sbd.bershaw.flac16", "date": "1980-10-30", "filename": "gd1980-10-30.139599.sbd.bershaw.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Radio City Music Hall", "city": "New York", "state": "NY"}, {"id": "gd80-10-31.sbd-preFM.cousinit.20377.sbeok.shnf", "date": "1980-10-31", "filename": "gd80-10-31.sbd-preFM.cousinit.20377.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Radio City Music Hall", "city": "New York", "state": "NY"}, {"id": "gd80-11-28.sbd.vernon.20049.sbeok.shnf", "date": "1980-11-28", "filename": "gd80-11-28.sbd.vernon.20049.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Lakeland Civic Center", "city": "Lakeland", "state": "FL"}, {"id": "gd80-11-30.sbd-aud.sacks.2416.sbeok.shnf", "date": "1980-11-30", "filename": "gd80-11-30.sbd-aud.sacks.2416.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Fox Theatre", "city": "Atlanta", "state": "GA"}, {"id": "gd1980-12-26.121531.upg-sbd.tobin.flac16", "date": "1980-12-26", "filename": "gd1980-12-26.121531.upg-sbd.tobin.flac16.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium Arena", "city": "Oakland", "state": "CA"}, {"id": "gd80-12-28.sbd.cousinit.17421.sbeok.shnf", "date": "1980-12-28", "filename": "gd80-12-28.sbd.cousinit.17421.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium Arena", "city": "Oakland", "state": "CA"}, {"id": "gd80-12-31.sbd.gorinsky.6391.sbeok.shnf", "date": "1980-12-31", "filename": "gd80-12-31.sbd.gorinsky.6391.sbeok.shnf.jpg", "collection": "new_animal", "collectionName": "new_animal", "venue": "Oakland Auditorium Arena", "city": "Oakland", "state": "CA"}];
+
+const COLLECTION_ORDER = ['young_bettys', 'cornell_and_company', 'wall_of_sound', 'new_animal'];
+const COLLECTION_NAMES = {
+  young_bettys: 'Young Bettys',
+  cornell_and_company: 'Cornell and Company',
+  wall_of_sound: 'Wall of Sound',
+  new_animal: 'New Animal'
+};
+
+const STORAGE_KEY = 'xlii-jcard-review';
+let reviews = {};
+let currentFilter = 'all';
+
+const SUPABASE_URL = 'https://dhwllgdxpeucldtmzhme.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRod2xsZ2R4cGV1Y2xkdG16aG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMzI2NTMsImV4cCI6MjA4NTgwODY1M30.PmDxpoWXP0zA2sJLgRxAfODH1JcjdFOoRMdnGZwJYLE';
+
+// Load saved reviews — localStorage first, then sync with Supabase
+function loadReviews() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) reviews = JSON.parse(saved);
+  } catch(e) {}
+  // Push any existing localStorage data to Supabase, then pull latest
+  syncToSupabase().then(() => syncFromSupabase());
+}
+
+function saveReviews() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
+}
+
+// Save a single review to Supabase
+async function saveReviewToSupabase(id) {
+  const review = reviews[id];
+  if (!review) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/xlii_jcard_reviews`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        id: id,
+        status: review.status || null,
+        comment: review.comment || '',
+        updated_at: new Date().toISOString()
+      })
+    });
+  } catch(e) { console.error('Supabase save error:', e); }
+}
+
+// Push all localStorage reviews to Supabase (initial sync)
+async function syncToSupabase() {
+  const entries = Object.entries(reviews).filter(([_, r]) => r.status || r.comment);
+  if (entries.length === 0) return;
+  try {
+    const rows = entries.map(([id, r]) => ({
+      id, status: r.status || null, comment: r.comment || '', updated_at: new Date().toISOString()
+    }));
+    await fetch(`${SUPABASE_URL}/rest/v1/xlii_jcard_reviews`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(rows)
+    });
+    console.log(`Synced ${rows.length} reviews to Supabase`);
+  } catch(e) { console.error('Supabase sync error:', e); }
+}
+
+// Pull reviews from Supabase (in case another device wrote them)
+async function syncFromSupabase() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/xlii_jcard_reviews?select=*`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return;
+    let changed = false;
+    for (const row of rows) {
+      if (row.status || row.comment) {
+        reviews[row.id] = { status: row.status || null, comment: row.comment || '' };
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveReviews();
+      renderCards();
+      updateProgress();
+    }
+    console.log(`Loaded ${rows.length} reviews from Supabase`);
+  } catch(e) { console.error('Supabase load error:', e); }
+}
+
+function getReview(id) {
+  return reviews[id] || { status: null, comment: '' };
+}
+
+function flashSaved(id) {
+  const indicator = document.querySelector(`[data-card-id="${id}"] .save-indicator`);
+  if (indicator) {
+    indicator.classList.remove('visible');
+    void indicator.offsetWidth; // force reflow for re-trigger
+    indicator.classList.add('visible');
+    setTimeout(() => indicator.classList.remove('visible'), 1500);
+  }
+}
+
+function setStatus(id, status) {
+  if (!reviews[id]) reviews[id] = { status: null, comment: '' };
+  // Toggle off if same status
+  if (reviews[id].status === status) {
+    reviews[id].status = null;
+  } else {
+    reviews[id].status = status;
+  }
+  saveReviews();
+  saveReviewToSupabase(id);
+  updateCard(id);
+  updateProgress();
+  applyFilter();
+  flashSaved(id);
+}
+
+function setComment(id, comment) {
+  if (!reviews[id]) reviews[id] = { status: null, comment: '' };
+  reviews[id].comment = comment;
+  saveReviews();
+  saveReviewToSupabase(id);
+  flashSaved(id);
+}
+
+function formatDate(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
+}
+
+function renderCards() {
+  const container = document.getElementById('cardList');
+  let html = '';
+  let globalNum = 0;
+
+  for (const coll of COLLECTION_ORDER) {
+    const collCards = CARDS.filter(c => c.collection === coll);
+    if (collCards.length === 0) continue;
+
+    html += `<div class="collection-header" id="coll-${coll}" data-collection="${coll}">
+      <span>${COLLECTION_NAMES[coll]}</span>
+      <span class="collection-count">${collCards.length} shows</span>
+    </div>`;
+
+    for (const card of collCards) {
+      globalNum++;
+      const review = getReview(card.id);
+      const statusClass = review.status ? 'status-' + review.status : '';
+      const location = [card.venue, card.city, card.state].filter(Boolean).join(', ');
+
+      const isFlagged = review.status === 'flagged';
+      let badgeHtml = isFlagged ? '<div class="card-status-badge badge-flagged">&#x2717; NEEDS CHANGES</div>' : '';
+
+      html += `<div class="card ${isFlagged ? 'status-flagged' : ''}" data-card-id="${card.id}" data-collection="${card.collection}">
+        <div class="card-img-wrap" onclick="openOverlay('${card.filename}')">
+          <img src="../www/jcards/${card.filename}" alt="${card.date}" loading="lazy">
+          <span class="img-expand-hint">Tap to enlarge</span>
+        </div>
+        <div class="card-info">
+          ${badgeHtml}
+          <div class="card-date"><span style="color:#d4a843;font-weight:700;margin-right:6px;">#${globalNum}</span>${formatDate(card.date)}</div>
+          <div class="card-venue">${location}</div>
+          <div class="card-actions">
+            <button class="action-btn flag-btn ${isFlagged ? 'selected' : ''}" onclick="setStatus('${card.id}','flagged')">
+              <span class="icon">&#x2717;</span> ${isFlagged ? 'Unflag' : 'Flag Issue'}
+            </button>
+          </div>
+          <div class="card-comment">
+            <textarea placeholder="What's wrong with this card..." rows="1" oninput="autoGrow(this); debouncedComment('${card.id}', this.value)">${review.comment || ''}</textarea>
+            <span class="save-indicator">Saved</span>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+
+  container.innerHTML = html;
+
+  // Auto-grow any textareas with content
+  document.querySelectorAll('.card-comment textarea').forEach(ta => {
+    if (ta.value) autoGrow(ta);
+  });
+}
+
+function updateCard(id) {
+  const el = document.querySelector(`[data-card-id="${id}"]`);
+  if (!el) return;
+  const review = getReview(id);
+
+  const isFlagged = review.status === 'flagged';
+
+  // Update card border class
+  el.className = el.className.replace(/status-\w+/g, '').trim();
+  if (isFlagged) el.classList.add('status-flagged');
+
+  // Update badge
+  const info = el.querySelector('.card-info');
+  let existingBadge = info.querySelector('.card-status-badge');
+  if (existingBadge) existingBadge.remove();
+
+  if (isFlagged) {
+    const badge = document.createElement('div');
+    badge.className = 'card-status-badge badge-flagged';
+    badge.innerHTML = '&#x2717; NEEDS CHANGES';
+    info.insertBefore(badge, info.firstChild);
+  }
+
+  // Update button
+  const flagBtn = el.querySelector('.flag-btn');
+  if (flagBtn) {
+    flagBtn.classList.toggle('selected', isFlagged);
+    flagBtn.innerHTML = `<span class="icon">&#x2717;</span> ${isFlagged ? 'Unflag' : 'Flag Issue'}`;
+  }
+}
+
+function updateProgress() {
+  let flagged = 0;
+  for (const card of CARDS) {
+    const r = getReview(card.id);
+    if (r.status === 'flagged') flagged++;
+  }
+  document.getElementById('flaggedCount').textContent = flagged;
+  document.getElementById('flaggedFilterCount').textContent = flagged;
+}
+
+function applyFilter() {
+  const cards = document.querySelectorAll('.card');
+  const headers = document.querySelectorAll('.collection-header');
+
+  // Track which collections have visible cards
+  const visibleCollections = new Set();
+
+  cards.forEach(el => {
+    const id = el.dataset.cardId;
+    const review = getReview(id);
+    let show = false;
+
+    switch(currentFilter) {
+      case 'all': show = true; break;
+      case 'flagged': show = review.status === 'flagged'; break;
+    }
+
+    if (show) {
+      el.classList.remove('card-hidden');
+      visibleCollections.add(el.dataset.collection);
+    } else {
+      el.classList.add('card-hidden');
+    }
+  });
+
+  // Show/hide collection headers
+  headers.forEach(h => {
+    if (visibleCollections.has(h.dataset.collection)) {
+      h.style.display = '';
+    } else {
+      h.style.display = 'none';
+    }
+  });
+}
+
+// Debounced comment saving
+let commentTimers = {};
+function debouncedComment(id, value) {
+  clearTimeout(commentTimers[id]);
+  commentTimers[id] = setTimeout(() => setComment(id, value), 400);
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// Overlay
+function openOverlay(filename) {
+  const overlay = document.getElementById('overlay');
+  const img = document.getElementById('overlayImg');
+  img.src = '../www/jcards/' + filename;
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Export
+function exportReview() {
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    total: CARDS.length,
+    summary: { approved: 0, flagged: 0, skipped: 0, unreviewed: 0 },
+    cards: []
+  };
+
+  for (const card of CARDS) {
+    const review = getReview(card.id);
+    const status = review.status || 'unreviewed';
+    exportData.summary[status]++;
+    if (review.status || review.comment) {
+      exportData.cards.push({
+        identifier: card.id,
+        date: card.date,
+        venue: card.venue,
+        city: card.city,
+        state: card.state,
+        collection: card.collectionName,
+        status: status,
+        comment: review.comment || ''
+      });
+    }
+  }
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `jcard-review-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Review data exported');
+}
+
+function resetAll() {
+  if (!confirm('Reset all reviews and comments? This cannot be undone.')) return;
+  reviews = {};
+  saveReviews();
+  renderCards();
+  updateProgress();
+  applyFilter();
+  showToast('All reviews cleared');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 2000);
+}
+
+// Filter buttons
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  applyFilter();
+});
+
+// Scroll to top button
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('jumpTop');
+  if (window.scrollY > 600) {
+    btn.classList.add('visible');
+  } else {
+    btn.classList.remove('visible');
+  }
+});
+
+// Keyboard shortcut: Escape closes overlay
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeOverlay();
+});
+
+// Init
+loadReviews();
+renderCards();
+updateProgress();
+applyFilter();
+</script>
+</body>
+</html>
